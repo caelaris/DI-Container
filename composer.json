@@ -1,0 +1,21 @@
+{
+    "name": "caelaris/di_container",
+    "description": "Dependency Injection Container",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tom Stapersma",
+            "email": "info@caelaris.com"
+        }
+    ],
+    "minimum-stability": "beta",
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "3.7.14"
+    },
+    "autoload": {
+    "psr-4": {
+        "DI\\": "DI"
+    }
+}
+}
