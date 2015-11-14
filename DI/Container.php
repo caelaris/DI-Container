@@ -13,8 +13,24 @@ namespace DI;
  */
 class Container
 {
+    /**
+     * Container for all DI exceptions
+     *
+     * @var array
+     */
     public $repository = array();
 
+    /**
+     * @todo fix Circular Reference detection
+     */
+//    public $buildStack = array();
+
+    /**
+     * Registers
+     *
+     * @param $class
+     * @param $di
+     */
     public function register($class, $di)
     {
         if (empty($class) || empty($di)) {
@@ -24,42 +40,95 @@ class Container
         $this->repository[$class] = $di;
     }
 
-    public function build($className)
+    /**
+     * Build a class using DI
+     *
+     * @todo fix Circular Reference detection
+     *
+     * @param      $className
+     * @param bool $resetBuildStack
+     *
+     * @return object
+     * @throws \Exception
+     */
+    public function build($className, $resetBuildStack = true)
     {
-        $buildClass = $this->repository[$className]['class'];
+        if (isset($this->repository[$className]['class'])) {
+            /** If there is new class registered for this class, use that to instantiate */
+            $buildClass = $this->repository[$className]['class'];
+        } else {
+            /** Else instantiate the className passed */
+            $buildClass = $className;
+        }
+        /**
+         * @todo fix Circular Reference detection
+         */
+//        if (!empty($this->buildStack) && in_array($buildClass, $this->buildStack)) {
+//            /** If the class being loaded is already in the build stack, error out due to circular references */
+//            throw new \Exception('CircularReference error with class: ' . $buildClass);
+//        }
+//
+//        /** Add the current class to the build stack */
+//        $this->buildStack[] = $buildClass;
 
-        $args = $this->getClassConstructorArgs($buildClass);
+        if (isset($this->repository[$buildClass]['class']) && $className != $buildClass) {
+            /** If there is another class registered for the current class, follow the reference */
+            return $this->build($this->repository[$buildClass]['class']);
+        }
 
+        /** Get the parameters required for the class constructor */
+        $params = $this->getClassConstructorParameters($buildClass);
+
+        /** Create a new instance of the class with the generated parameters */
         $reflector = new \ReflectionClass($buildClass);
-        $newInstance = $reflector->newInstanceArgs($args);
+        $newInstance = $reflector->newInstanceArgs($params);
+
+        /**
+         * @todo fix Circular Reference detection
+         */
+//        if ($resetBuildStack) {
+//            $this->buildStack = array();
+//        }
 
         return $newInstance;
     }
 
-    public function getClassConstructorArgs($className)
+    /**
+     * Parse a Class constructor and instantiate and returns parameters
+     *
+     * @param $className
+     *
+     * @return array
+     * @throws \Exception
+     */
+    public function getClassConstructorParameters($className)
     {
-        $constructorArgs = array();
+        $instanceParameters = array();
         $reflector = new \ReflectionClass($className);
         $constructor = $reflector->getConstructor();
         if (!$constructor) {
             /** If class has no constructor, no arguments needed */
-            return $constructorArgs;
+            return $instanceParameters;
         }
 
-        $reflectionConstructorArgs = $constructor->getParameters();
-        foreach ($reflectionConstructorArgs as $reflectionConstructorArg) {
-            if ($reflectionConstructorArg->getClass()) {
-                $reflectionConstructorArgClassName = $reflectionConstructorArg->getClass()->getName();
-                $constructorArg = $this->build($reflectionConstructorArgClassName);
-            } elseif(isset($this->repository[$className][$reflectionConstructorArg->getName()])) {
-                $constructorArg = $this->repository[$className][$reflectionConstructorArg->getName()];
-            } elseif($reflectionConstructorArg->isOptional() && $reflectionConstructorArg->getDefaultValue()) {
-                $constructorArg = $reflectionConstructorArg->getDefaultValue();
+        $parameters = $constructor->getParameters();
+        foreach ($parameters as $parameter) {
+            if ($parameter->getClass()) {
+                /** If the parameter is a class, build that class */
+                $parameterClassName = $parameter->getClass()->getName();
+                $param = $this->build($parameterClassName, false);
+            } elseif(isset($this->repository[$className][$parameter->getName()])) {
+                /** If there is a value for the parameter in the repository, use that value */
+                $param = $this->repository[$className][$parameter->getName()];
+            } elseif($parameter->isOptional() && $parameter->getDefaultValue()) {
+                /** If the parameter has a default value, use that value */
+                $param = $parameter->getDefaultValue();
             } else {
-                throw new \Exception('Cannot get required __construct value for: ' . $reflectionConstructorArg->getName() . ' in class ' . $className);
+                /** If non of the options above have led to a parameter being set, we cannot instantiate this class */
+                throw new \Exception('Cannot get required __construct value for: ' . $parameter->getName() . ' in class ' . $className);
             }
-            $constructorArgs[] = $constructorArg;
+            $instanceParameters[] = $param;
         }
-        return $constructorArgs;
+        return $instanceParameters;
     }
 }
