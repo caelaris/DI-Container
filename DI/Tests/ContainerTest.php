@@ -4,15 +4,14 @@
  * @license     MIT
  * @author      Tom Stapersma (info@caelaris.com)
  */
-namespace Di\Tests;
+namespace DI\Tests;
 
-use DI\Container;
 use DI\Tests\Dummy\DummyClassA;
 
 /**
  * Class ContainerTest
  *
- * @package Di\Tests
+ * @package DI\Tests
  */
 class ContainerTest extends \PHPUnit_Framework_TestCase
 {
@@ -188,7 +187,7 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
 
     public function testBuildMethodShouldThrowExceptionForCircularReference()
     {
-        $this->markTestSkipped('@todo: Implement circular Reference Detection');
+        $this->markTestSkipped('@todo: Implement Circular Reference Detection');
 
         $this->setExpectedException('\Exception', 'CircularReference error with class: ');
         $dummyClassE = 'DI\Tests\Dummy\DummyClassE';
@@ -242,7 +241,7 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
 
     public function testBuildStackShouldBeEmptyAfterBuild()
     {
-        $this->markTestSkipped('@todo: Implement circular Reference Detection');
+        $this->markTestSkipped('@todo: Implement Circular Reference Detection');
         $dummyClassA = 'DI\Tests\Dummy\DummyClassA';
 
         /** @var \DI\Container $diContainer */
@@ -273,7 +272,7 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
 
     public function testBuildMethodSequentialRegistrationShouldThrowException()
     {
-        $this->markTestSkipped('@todo: Implement circular Reference Detection');
+        $this->markTestSkipped('@todo: Implement Circular Reference Detection');
         $this->setExpectedException('\Exception', 'CircularReference error with class: ');
         $dummyClassA = 'DI\Tests\Dummy\DummyClassA';
         $dummyClassB = 'DI\Tests\Dummy\DummyClassB';
@@ -314,5 +313,27 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
 
         $builtClass = $diContainer->build($dummyClassA);
         $this->assertInstanceOf($dummyClassA, $builtClass);
+    }
+
+    public function testContainerShouldHaveConstructor()
+    {
+        $reflector = new \ReflectionClass($this->className);
+        $this->assertNotNull($reflector->getConstructor());
+    }
+
+    public function testContainerConstructorShouldTakeOneOptionalParameterForDiFile()
+    {
+        $reflector = new \ReflectionClass($this->className);
+        $constructor = $reflector->getConstructor();
+
+        $constructorParams = $constructor->getParameters();
+        $this->assertEquals(1, count($constructorParams));
+
+        /** @var \ReflectionParameter $constructorParam */
+        $constructorParam = current($constructorParams);
+
+        $this->assertTrue($constructorParam->isOptional());
+
+        $this->assertEquals('DI\FileLoaderInterface', $constructorParam->getClass()->getName());
     }
 }

@@ -26,6 +26,14 @@ class Container
 //    public $buildStack = array();
 
     /**
+     * @param FileLoaderInterface $diFile
+     */
+    public function __construct(FileLoaderInterface $diFile = null)
+    {
+
+    }
+
+    /**
      * Registers
      *
      * @param $class
