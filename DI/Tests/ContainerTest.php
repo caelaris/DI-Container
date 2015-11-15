@@ -6,6 +6,7 @@
  */
 namespace DI\Tests;
 
+use DI\JsonLoader;
 use DI\Tests\Dummy\DummyClassA;
 
 /**
@@ -20,6 +21,11 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
      * @var string
      */
     public $className = 'DI\Container';
+
+    protected function getDummyConfigFilePath($file)
+    {
+        return __DIR__ . DIRECTORY_SEPARATOR . 'DummyConfig' . DIRECTORY_SEPARATOR . $file;
+    }
 
     public function testDiContainerExists()
     {
@@ -334,6 +340,54 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
 
         $this->assertTrue($constructorParam->isOptional());
 
-        $this->assertEquals('DI\FileLoaderInterface', $constructorParam->getClass()->getName());
+        $this->assertEquals('DI\LoaderInterface', $constructorParam->getClass()->getName());
+    }
+
+    public function testBuildMethodShouldReturnTheCorrectClassAfterConstructingContainerWithLoaderParam()
+    {
+        $expectedRepository = array(
+            'DI\Tests\Dummy\DummyClassB' => array(
+                'class' => 'DI\Tests\Dummy\DummyClassA'
+            )
+        );
+
+        $path = $this->getDummyConfigFilePath('valid3.json');
+        $jsonLoader = new JsonLoader($path);
+
+        /** @var \DI\Container $diContainer */
+        $diContainer = new $this->className($jsonLoader);
+
+        $this->assertEquals($expectedRepository, $diContainer->repository);
+
+        $builtClass = $diContainer->build('DI\Tests\Dummy\DummyClassB');
+
+        $this->assertInstanceOf('DI\Tests\Dummy\DummyClassA', $builtClass);
+    }
+
+    public function testRegisterMethodShouldAllowInstancesToBeRegisteredOnTheFly()
+    {
+        $dummyClassA = 'DI\Tests\Dummy\DummyClassA';
+        $dummyClassB = 'DI\Tests\Dummy\DummyClassB';
+
+        /** @var \DI\Container $diContainer */
+        $diContainer = new $this->className;
+        $diContainer->register($dummyClassB, array('instance' => new $dummyClassA));
+
+        $builtClass = $diContainer->build($dummyClassB);
+
+        $this->assertInstanceOf($dummyClassA, $builtClass);
+    }
+
+    public function testBuildMethodShouldThrowExceptionIfClassIsNotInstantiable()
+    {
+        $this->setExpectedException('\Exception', 'Class is not instantiable: ');
+        $dummyClassA = 'DI\Tests\Dummy\DummyClassA';
+        $dummyInterface = 'DI\Tests\Dummy\DummyInterface';
+
+        /** @var \DI\Container $diContainer */
+        $diContainer = new $this->className;
+        $diContainer->register($dummyClassA, array('class' => $dummyInterface));
+
+        $diContainer->build($dummyClassA);
     }
 }

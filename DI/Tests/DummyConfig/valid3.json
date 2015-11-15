@@ -1,0 +1,5 @@
+{
+    "DI\\Tests\\Dummy\\DummyClassB": {
+        "class":"DI\\Tests\\Dummy\\DummyClassA"
+    }
+}

@@ -7,11 +7,11 @@
 namespace DI;
 
 /**
- * Interface FileLoaderInterface
+ * Interface LoaderInterface
  *
  * @package DI
  */
-interface FileLoaderInterface
+interface LoaderInterface
 {
-    public function setDiFilePath($diFile);
+    public function getDiRepository();
 }

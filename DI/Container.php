@@ -26,11 +26,13 @@ class Container
 //    public $buildStack = array();
 
     /**
-     * @param FileLoaderInterface $diFile
+     * @param LoaderInterface $diLoader
      */
-    public function __construct(FileLoaderInterface $diFile = null)
+    public function __construct(LoaderInterface $diLoader = null)
     {
-
+        if ($diLoader) {
+            $this->repository = $diLoader->getDiRepository();
+        }
     }
 
     /**
@@ -61,7 +63,10 @@ class Container
      */
     public function build($className, $resetBuildStack = true)
     {
-        if (isset($this->repository[$className]['class'])) {
+        if (isset($this->repository[$className]['instance']) && is_object($this->repository[$className]['instance'])) {
+            /** If an instance is registered, return the instance */
+            return $this->repository[$className]['instance'];
+        } elseif (isset($this->repository[$className]['class'])) {
             /** If there is new class registered for this class, use that to instantiate */
             $buildClass = $this->repository[$className]['class'];
         } else {
@@ -84,11 +89,15 @@ class Container
             return $this->build($this->repository[$buildClass]['class']);
         }
 
+        $reflector = new \ReflectionClass($buildClass);
+        if (!$reflector->isInstantiable()) {
+            throw new \Exception('Class is not instantiable: ' . $buildClass);
+        }
+
         /** Get the parameters required for the class constructor */
         $params = $this->getClassConstructorParameters($buildClass);
 
         /** Create a new instance of the class with the generated parameters */
-        $reflector = new \ReflectionClass($buildClass);
         $newInstance = $reflector->newInstanceArgs($params);
 
         /**
