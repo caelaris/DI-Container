@@ -390,4 +390,14 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
 
         $diContainer->build($dummyClassA);
     }
+
+    public function testBuildMethodShouldReturnDiContainerInstance()
+    {
+        /** @var \DI\Container $diContainer */
+        $diContainer = new $this->className;
+
+        $builtContainer = $diContainer->build($this->className);
+
+        $this->assertSame($diContainer, $builtContainer);
+    }
 }

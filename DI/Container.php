@@ -73,6 +73,11 @@ class Container
             /** Else instantiate the className passed */
             $buildClass = $className;
         }
+
+        /** If DI container is requested, return self */
+        if ($buildClass == get_class($this)) {
+            return $this;
+        }
         /**
          * @todo fix Circular Reference detection
          */
@@ -130,14 +135,14 @@ class Container
 
         $parameters = $constructor->getParameters();
         foreach ($parameters as $parameter) {
-            if ($parameter->getClass()) {
+            if ($parameter->getClass() && !$parameter->isOptional()) {
                 /** If the parameter is a class, build that class */
                 $parameterClassName = $parameter->getClass()->getName();
                 $param = $this->build($parameterClassName, false);
             } elseif(isset($this->repository[$className][$parameter->getName()])) {
                 /** If there is a value for the parameter in the repository, use that value */
                 $param = $this->repository[$className][$parameter->getName()];
-            } elseif($parameter->isOptional() && $parameter->getDefaultValue()) {
+            } elseif($parameter->isOptional()) {
                 /** If the parameter has a default value, use that value */
                 $param = $parameter->getDefaultValue();
             } else {
